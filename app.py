@@ -20,6 +20,12 @@ TWILIO_AUTH_TOKEN = '959f07424ca14d1d3902aa5ee474acb3'
 TWILIO_PHONE_NUMBER = '+17856453727'
 API_KEY = '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'
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+# DB_CONFIG = {
+#     'host': 'localhost',
+#     'user': 'root',
+#     'password': '',
+#     'database': 'smart_classroom'
+# }
 DB_CONFIG = {
      'host': 'beiykbwimzot1plko8pd-mysql.services.clever-cloud.com',
     'user': 'u4o9ed5pye2s9oce',
