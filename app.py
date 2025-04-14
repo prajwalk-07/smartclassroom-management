@@ -27,11 +27,11 @@ twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 #     'database': 'smart_classroom'
 # }
 DB_CONFIG = {
-     'host': 'beiykbwimzot1plko8pd-mysql.services.clever-cloud.com',
-    'user': 'u4o9ed5pye2s9oce',
-    'password': 'nTrLNWD6UI6dB7pMEoN3',
-    'database': 'beiykbwimzot1plko8pd',
-    'port': 3306,
+     'host': '',
+    'user': '',
+    'password': '',
+    'database': '',
+    'port': ,
 }
 def get_db_connection():
     try:
