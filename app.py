@@ -15,10 +15,10 @@ app = Flask(__name__)
 CORS(app)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-TWILIO_ACCOUNT_SID = 'ACae498339b89f6ed1d86f2c74ad569e39'
-TWILIO_AUTH_TOKEN = '959f07424ca14d1d3902aa5ee474acb3'
-TWILIO_PHONE_NUMBER = '+17856453727'
-API_KEY = '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'
+TWILIO_ACCOUNT_SID = ''
+TWILIO_AUTH_TOKEN = ''
+TWILIO_PHONE_NUMBER = ''
+API_KEY = ''
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
 # DB_CONFIG = {
 #     'host': 'localhost',
