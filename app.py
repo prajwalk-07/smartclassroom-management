@@ -20,19 +20,19 @@ TWILIO_AUTH_TOKEN = ''
 TWILIO_PHONE_NUMBER = ''
 API_KEY = ''
 twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
-# DB_CONFIG = {
-#     'host': 'localhost',
-#     'user': 'root',
-#     'password': '',
-#     'database': 'smart_classroom'
-# }
 DB_CONFIG = {
-     'host': '',
-    'user': '',
+    'host': 'localhost',
+    'user': 'root',
     'password': '',
-    'database': '',
-    'port': ,
+    'database': 'smart_classroom'
 }
+# DB_CONFIG = {
+#      'host': '',
+#     'user': '',
+#     'password': '',
+#     'database': '',
+#     'port': ,
+# }
 def get_db_connection():
     try:
         return mysql.connector.connect(**DB_CONFIG)
