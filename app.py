@@ -44,6 +44,8 @@ def get_db_connection():
 def get_recovery_assignments():
     try:
         student_id = request.args.get('student_id')
+        logger.info(f"Processing recovery assignments for student_id: {student_id}")
+        
         if not student_id:
             return jsonify({
                 "status": "error",
@@ -52,6 +54,8 @@ def get_recovery_assignments():
 
         db = get_db_connection()
         cursor = db.cursor(dictionary=True)
+        
+        # Query for absent subjects
         cursor.execute("""
             WITH ConsecutiveAbsences AS (
                 SELECT 
@@ -70,10 +74,15 @@ def get_recovery_assignments():
             )
             SELECT * FROM ConsecutiveAbsences
         """, (student_id,))
-        
+
         absent_subjects = cursor.fetchall()
+        logger.info(f"Found {len(absent_subjects)} subjects with consecutive absences")
+        
         assignments_list = []
         for subject in absent_subjects:
+            logger.info(f"Processing subject: {subject['subject_name']}")
+            
+            # Check for existing assignments
             cursor.execute("""
                 SELECT 
                     a.id,
@@ -92,60 +101,62 @@ def get_recovery_assignments():
             """, (student_id, subject['subject_id']))
 
             existing_assignment = cursor.fetchone()
+            logger.info(f"Existing assignment found: {existing_assignment is not None}")
 
             if not existing_assignment:
-                prompt = f"""Generate 5 random questions about {subject['subject_name']}.
-                Include a mix of:
-                - Easy questions (basic understanding)
-                - Medium questions (application-based)
-                - Hard questions (analysis and problem-solving)
-                Make each question different in difficulty and concept.
-                Return only the questions, one per line."""
-
+                logger.info(f"Generating new assignment for {subject['subject_name']}")
+                
                 try:
                     headers = {
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {API_KEY}"
+                        "Content-Type": "application/json"
                     }
 
                     payload = {
-                        "model": "nvidia/llama-3.1-nemotron-70b-instruct",
-                        "messages": [
-                            {
-                                "role": "system",
-                                "content": "You are a question generator specializing in creating educational questions."
-                            },
-                            {
-                                "role": "user",
-                                "content": prompt
-                            }
-                        ],
-                        "temperature": 1.2,
-                        "max_tokens": 1000
+                        "contents": [{
+                            "parts": [{
+                                "text": f"""Generate 5 random questions about {subject['subject_name']}.
+                                Include a mix of:
+                                - Easy questions (basic understanding)
+                                - Medium questions (application-based)
+                                - Hard questions (analysis and problem-solving)
+                                Make each question different in difficulty and concept.
+                                Return only the questions, one per line."""
+                            }]
+                        }]
                     }
 
+                    logger.info("Sending request to Gemini API")
                     response = requests.post(
-                        "https://integrate.api.nvidia.com/v1/chat/completions",
+                        f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={API_KEY}",
                         headers=headers,
                         json=payload,
                         timeout=30
                     )
+                    logger.info(f"Gemini API response status: {response.status_code}")
+                    logger.info(f"Gemini API response: {response.text}")
 
                     if response.status_code == 200:
-                        questions = response.json()['choices'][0]['message']['content'].strip().split('\n')
-                        questions = [q.strip() for q in questions if q.strip()][:11]
+                        response_json = response.json()
+                        questions = response_json.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '').strip().split('\n')
+                        questions = [q.strip() for q in questions if q.strip()][:5]
+                        
+                        logger.info(f"Generated {len(questions)} questions")
+                        logger.info(f"Questions: {questions}")
 
+                        # Insert new assignment
                         cursor.execute("""
                             INSERT INTO assignments 
-                            (subject_id, title, description, due_date, status)
-                            VALUES (%s, %s, %s, DATE_ADD(CURDATE(), INTERVAL 7 DAY), 'pending')
+                            (subject_id, title, description, due_date, status, created_at)
+                            VALUES (%s, %s, %s, DATE_ADD(CURDATE(), INTERVAL 7 DAY), 'pending', CURDATE())
                         """, (
                             subject['subject_id'],
                             f"Recovery Assignment - {subject['subject_name']}",
                             json.dumps(questions)
                         ))
                         db.commit()
+                        logger.info("New assignment inserted successfully")
 
+                        # Fetch the newly created assignment
                         cursor.execute("""
                             SELECT 
                                 a.id,
@@ -163,22 +174,24 @@ def get_recovery_assignments():
                         if new_assignment:
                             new_assignment['questions'] = questions
                             assignments_list.append(new_assignment)
+                            logger.info("New assignment added to list")
 
                 except Exception as e:
-                    logger.error(f"Error generating questions: {e}")
+                    logger.error(f"Error generating questions: {str(e)}")
                     continue
             else:
-     
                 existing_assignment['questions'] = json.loads(existing_assignment['description'])
                 assignments_list.append(existing_assignment)
+                logger.info("Existing assignment added to list")
 
+        logger.info(f"Returning {len(assignments_list)} assignments")
         return jsonify({
             "status": "success",
             "data": assignments_list
         })
 
     except Exception as e:
-        logger.error(f"Error in recovery assignments: {e}")
+        logger.error(f"Error in recovery assignments: {str(e)}")
         return jsonify({
             "status": "error",
             "message": str(e)
